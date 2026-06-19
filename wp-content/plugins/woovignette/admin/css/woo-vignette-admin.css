@@ -1,0 +1,9 @@
+/**
+ * All of the CSS for your admin-specific functionality should be
+ * included in this file.
+ */
+ .vignette-upload-file{
+    display: flex;
+    column-gap: 20px;
+    margin-bottom: 5px;
+ }
