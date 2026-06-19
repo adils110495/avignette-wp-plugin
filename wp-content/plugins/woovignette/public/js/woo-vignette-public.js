@@ -479,8 +479,7 @@
                 },
                 success: function (res) {
                     if (res.success) {
-                        $(".order-form-popup-sidebar .uagb-popup-builder__container").html("");
-                        $("a[href='#Cart']").trigger("click");
+                        loadMiniCart();
                     } else {
                         $('#error-message').text(res.data.message);
                         hideLoader();
@@ -490,8 +489,7 @@
                     console.error('AJAX Error:', error);
                     $('#error-message').text("something went wrong");
                     hideLoader();
-                }
-                ,
+                },
                 complete: function () {
                     hideLoader();
                 }
@@ -835,57 +833,58 @@
             }
         });
 
-        $(document).on("click","a[href='#Cart']",function (event) {
-            event.preventDefault() 
-            let popup_sidebar = $(".order-form-popup-sidebar")
-            let popup_sidebar_wrapper = $(".order-form-popup-sidebar .uagb-popup-builder__wrapper--popup")
-            let popup_sidebar_container = $(".order-form-popup-sidebar .uagb-popup-builder__container")
-            let originalEvent = event.originalEvent
-            if( originalEvent ){
-                let targetClass = originalEvent.target.classList;
-                console.log(event); 
-                console.log(targetClass); 
-                if(!targetClass.contains('vignette-delete')){
-                    //$("#order-form-popup-sidebar .order-form-popup-content").html("");
-                    popup_sidebar_container.html("");
-                }
-            }
-            let popup_width = $(this).data("width") || '50%'
+        function loadMiniCart( popup_width ) {
+            let popup_sidebar = $(".order-form-popup-sidebar");
+            let popup_sidebar_wrapper = $(".order-form-popup-sidebar .uagb-popup-builder__wrapper--popup");
+            let popup_sidebar_container = $(".order-form-popup-sidebar .uagb-popup-builder__container");
+            popup_width = popup_width || '50%';
+            popup_sidebar_container.html("");
             popup_sidebar.addClass('active');
-            popup_sidebar_wrapper.css("width",popup_width)
-            //$("#order-form-popup-sidebar").addClass('active').css("width",popup_width);
+            popup_sidebar_wrapper.css("width", popup_width);
             $.ajax({
                 url: wv_settings.ajax_url,
                 type: 'POST',
-                data: {
-                    action: "wv_show_minicart_form"
-                },
+                data: { action: "wv_show_minicart_form" },
                 dataType: "json",
                 beforeSend: function () {
-                    showLoader( '.uagb-popup-builder__wrapper--popup' )
+                    showLoader('.uagb-popup-builder__wrapper--popup');
                 },
                 success: function (res) {
                     if (res.success) {
-                        //$("#order-form-popup-sidebar .order-form-popup-content").html(res.data.html);
                         popup_sidebar_container.html(res.data.html);
-                        console.log({is_checkout_page})
                         if( is_checkout_page ){
-                            jQuery(document.body).trigger("wc_update_cart")
+                            jQuery(document.body).trigger("wc_update_cart");
                         }
                     } else {
-                        //$("#order-form-popup-sidebar .order-form-popup-content").html('<p>Something went wrong. Please try again.</p>');
                         popup_sidebar_container.html(res.data.message);
                     }
-                    hideLoader()
+                    hideLoader();
                 },
                 error: function (xhr, status, error) {
                     console.error('AJAX Error:', error);
-                    hideLoader()
+                    hideLoader();
                 },
                 complete: function () {
-                    hideLoader()
+                    hideLoader();
                 }
             });
+        }
+
+        $(document).on("click","a[href='#Cart']",function (event) {
+            event.preventDefault();
+            let originalEvent = event.originalEvent;
+            let skipClear = false;
+            if( originalEvent ){
+                let targetClass = originalEvent.target.classList;
+                if( targetClass.contains('vignette-delete') ){
+                    skipClear = true;
+                }
+            }
+            let popup_width = $(this).data("width") || '50%';
+            if( !skipClear ){
+                $(".order-form-popup-sidebar .uagb-popup-builder__container").html("");
+            }
+            loadMiniCart(popup_width);
         });
         $("#order-form-popup-close").click(function () {
             $("#order-form-popup-sidebar").removeClass("active");
