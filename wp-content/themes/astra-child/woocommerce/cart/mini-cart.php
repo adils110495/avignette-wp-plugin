@@ -88,7 +88,16 @@ if ( ! WC()->cart->is_empty() ) {
 			<tr>
 				<td>
 					<p class="woocommerce-mini-cart__total total">
-						<b>Total :</b> <?php wc_cart_totals_order_total_html(); ?>
+						<b>Total :</b> <?php
+					$_mini_cart_total = 0;
+					foreach ( WC()->cart->get_cart() as $_mct_item ) {
+						$_mini_cart_total += floatval( $_mct_item['line_total'] ) + floatval( $_mct_item['line_tax'] );
+						if ( isset( $_mct_item['vignette_fee']['price_with_tax'] ) ) {
+							$_mini_cart_total += floatval( $_mct_item['vignette_fee']['price_with_tax'] );
+						}
+					}
+					echo wc_price( $_mini_cart_total );
+					?>
 					</p>
 					<?php do_action('woocommerce_widget_shopping_cart_before_buttons'); ?>
 					<p class="woocommerce-mini-cart__buttons buttons"><?php do_action('woocommerce_widget_shopping_cart_buttons'); ?></p>

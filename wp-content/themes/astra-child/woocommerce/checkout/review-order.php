@@ -141,7 +141,16 @@ $astra_setting = get_option('astra-settings');
 				</a>
 				<?php esc_html_e( 'Total', 'woocommerce' ); ?>
 			</th>
-			<td><?php wc_cart_totals_order_total_html(); ?></td>
+			<td><?php
+				$_review_total = 0;
+				foreach ( WC()->cart->get_cart() as $_rt_item ) {
+					$_review_total += floatval( $_rt_item['line_total'] ) + floatval( $_rt_item['line_tax'] );
+					if ( isset( $_rt_item['vignette_fee']['price_with_tax'] ) ) {
+						$_review_total += floatval( $_rt_item['vignette_fee']['price_with_tax'] );
+					}
+				}
+				echo wc_price( $_review_total );
+			?></td>
 		</tr>
 		<tr class="vignette-specification">
 		    <td colspan="2" style="display: flex;justify-content: space-between;">

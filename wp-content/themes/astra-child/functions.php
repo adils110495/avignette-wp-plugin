@@ -27,7 +27,7 @@ add_action( 'after_setup_theme', 'woocommerce_support' );
 function woocommerce_support() {
    add_theme_support( 'woocommerce' );
 }     
-function add_content_to_beginning_of_body() {
+/* function add_content_to_beginning_of_body() {
     ?>
     <!-- Popup Sidebar -->
     <div id="order-form-popup-sidebar" class="order-form-popup-sidebar">
@@ -39,7 +39,7 @@ function add_content_to_beginning_of_body() {
     </div>
     <?php
 }
-add_action('wp_body_open', 'add_content_to_beginning_of_body');
+add_action('wp_body_open', 'add_content_to_beginning_of_body'); */
 
 function woocommerce_widget_shopping_cart_subtotal() {
 	echo '<strong>' . esc_html__( 'Total:', 'woocommerce' ) . '</strong> ' . WC()->cart->get_cart_subtotal(); 
