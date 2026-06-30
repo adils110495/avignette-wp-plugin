@@ -506,10 +506,11 @@ class Woo_Vignette_Ajax
         // Check if the product is already in the cart
         if ( ( $optional_cart_item_key = $this->is_product_in_cart($product_id) ) ) {
             $quantity = 0;
-            // Loop through cart items and count how many don't have 'fr' or 'de' as product_country
+            // Loop through cart items and count how many don't belong to excluded countries
+            $rapid_excluded = \Woo_Vignette\admin\includes\Woo_Vignette_Settings::get_rapid_excluded_countries();
             foreach (WC()->cart->get_cart() as $cart_item_key => $cart_item) {
                 // Check if the current cart item doesn't match the excluded countries
-                if (!in_array($cart_item['product_country'], ['fr', 'de']) && $optional_cart_item_key != $cart_item_key) {
+                if (!in_array($cart_item['product_country'], $rapid_excluded) && $optional_cart_item_key != $cart_item_key) {
                     $quantity++; // Increase quantity based on the product's country
                 }
             }
@@ -530,8 +531,9 @@ class Woo_Vignette_Ajax
             // Get the product ID and quantity
             $product_id = isset($_POST['product_id']) ? absint($_POST['product_id']) : 0;
             $quantity = 0;
+            $rapid_excluded = \Woo_Vignette\admin\includes\Woo_Vignette_Settings::get_rapid_excluded_countries();
             foreach (WC()->cart->get_cart() as $cart_item_key => $cart_item) {
-                if( !in_array( $cart_item['product_country'], ['fr','de'] ) ){
+                if( !in_array( $cart_item['product_country'], $rapid_excluded ) ){
                     $quantity++;//$cart_item['quantity'];
                 }
             }
@@ -863,12 +865,13 @@ class Woo_Vignette_Ajax
         $optional_product_cart_key = '';
         $quantity = 0;
         $rapid_product_id = \Woo_Vignette\admin\includes\Woo_Vignette_Settings::get_rapid_processing_product_id();
+        $rapid_excluded = \Woo_Vignette\admin\includes\Woo_Vignette_Settings::get_rapid_excluded_countries();
         foreach (WC()->cart->get_cart() as $cart_item_key => $cart_item) {
             $_product = $cart_item['data'];
             $product_id = $_product->get_id();
             if( $product_id != $rapid_product_id ){
                 $product_country = $cart_item['product_country']??'';
-                if( !in_array( $product_country, ['fr','de'] ) ){
+                if( !in_array( $product_country, $rapid_excluded ) ){
                     $quantity++;
                 }
             }else{

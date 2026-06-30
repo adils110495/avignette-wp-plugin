@@ -8,17 +8,20 @@ namespace Woo_Vignette\admin\includes;
 
 class Woo_Vignette_Settings {
 
-    const OPTION_GOOGLE_MAPS_API_KEY  = 'wv_google_maps_api_key';
-    const OPTION_ADVANCE_MIN_DAYS     = 'wv_advance_min_days';
-    const OPTION_RAPID_FEE_ENABLED    = 'wv_rapid_processing_fee_enabled';
-    const OPTION_RAPID_PRODUCT_ID     = 'wv_rapid_processing_product_id';
+    const OPTION_GOOGLE_MAPS_API_KEY       = 'wv_google_maps_api_key';
+    const OPTION_ADVANCE_MIN_DAYS          = 'wv_advance_min_days';
+    const OPTION_RAPID_FEE_ENABLED         = 'wv_rapid_processing_fee_enabled';
+    const OPTION_RAPID_PRODUCT_ID          = 'wv_rapid_processing_product_id';
+    const OPTION_ACTIVE_COUNTRIES          = 'wv_active_countries';
+    const OPTION_RAPID_EXCLUDED_COUNTRIES  = 'wv_rapid_excluded_countries';
 
     public function __construct() {
         add_filter( 'woocommerce_settings_tabs_array',           [ $this, 'add_settings_tab' ], 50 );
         add_action( 'woocommerce_settings_tabs_wv_settings',     [ $this, 'output' ] );
         add_action( 'woocommerce_update_options_wv_settings',    [ $this, 'save' ] );
-        add_action( 'woocommerce_admin_field_wv_api_key',        [ $this, 'render_api_key_field' ] );
-        add_action( 'woocommerce_admin_field_wv_product_select', [ $this, 'render_product_select_field' ] );
+        add_action( 'woocommerce_admin_field_wv_api_key',              [ $this, 'render_api_key_field' ] );
+        add_action( 'woocommerce_admin_field_wv_product_select',       [ $this, 'render_product_select_field' ] );
+        add_action( 'woocommerce_admin_field_wv_country_multiselect',  [ $this, 'render_country_multiselect_field' ] );
     }
 
     public function add_settings_tab( $tabs ) {
@@ -47,8 +50,25 @@ class Woo_Vignette_Settings {
             : 0;
         update_option( self::OPTION_RAPID_PRODUCT_ID, $product_id );
 
+        // Save active countries multiselect (array; empty array when nothing selected).
+        $active_countries = isset( $_POST[ self::OPTION_ACTIVE_COUNTRIES ] )
+            ? array_map( 'sanitize_text_field', (array) wp_unslash( $_POST[ self::OPTION_ACTIVE_COUNTRIES ] ) )
+            : [];
+        update_option( self::OPTION_ACTIVE_COUNTRIES, $active_countries );
+
+        // Save rapid processing excluded countries multiselect.
+        $rapid_excluded = isset( $_POST[ self::OPTION_RAPID_EXCLUDED_COUNTRIES ] )
+            ? array_map( 'sanitize_text_field', (array) wp_unslash( $_POST[ self::OPTION_RAPID_EXCLUDED_COUNTRIES ] ) )
+            : [];
+        update_option( self::OPTION_RAPID_EXCLUDED_COUNTRIES, $rapid_excluded );
+
         // Let WooCommerce save the standard fields (exclude our custom-handled ones).
-        $custom_handled = [ self::OPTION_GOOGLE_MAPS_API_KEY, self::OPTION_RAPID_PRODUCT_ID ];
+        $custom_handled = [
+            self::OPTION_GOOGLE_MAPS_API_KEY,
+            self::OPTION_RAPID_PRODUCT_ID,
+            self::OPTION_ACTIVE_COUNTRIES,
+            self::OPTION_RAPID_EXCLUDED_COUNTRIES,
+        ];
         $standard = array_filter( $this->get_settings(), static function ( $field ) use ( $custom_handled ) {
             return ! in_array( $field['id'] ?? '', $custom_handled, true );
         } );
@@ -104,6 +124,24 @@ class Woo_Vignette_Settings {
                 'type'     => 'wv_product_select',
                 'id'       => self::OPTION_RAPID_PRODUCT_ID,
                 'desc_tip' => __( 'Select the WooCommerce product that represents the rapid processing fee. Replaces the hardcoded WV_OPTIONAL_PRODUCT_ID constant.', 'woo-vignette' ),
+            ],
+
+            // ----- Active Countries (checkout field trigger) -----
+            [
+                'title'    => __( 'Active Countries', 'woo-vignette' ),
+                'type'     => 'wv_country_multiselect',
+                'id'       => self::OPTION_ACTIVE_COUNTRIES,
+                'desc_tip' => __( 'Countries that trigger vehicle-information fields at checkout (license plate, registration date, etc.). Select the countries whose vignettes you sell.', 'woo-vignette' ),
+                'default'  => [ 'at', 'bg', 'hu', 'ro', 'sk', 'sl', 'ch', 'cs', 'fr', 'de', 'md' ],
+            ],
+
+            // ----- Rapid Processing Excluded Countries -----
+            [
+                'title'    => __( 'Rapid Processing Excluded Countries', 'woo-vignette' ),
+                'type'     => 'wv_country_multiselect',
+                'id'       => self::OPTION_RAPID_EXCLUDED_COUNTRIES,
+                'desc_tip' => __( 'Products from these countries are excluded from the rapid processing fee quantity count.', 'woo-vignette' ),
+                'default'  => [ 'fr', 'de' ],
             ],
 
             [
@@ -224,6 +262,54 @@ class Woo_Vignette_Settings {
     }
 
     // -------------------------------------------------------------------------
+    // Custom field renderer: wv_country_multiselect
+    // -------------------------------------------------------------------------
+
+    public function render_country_multiselect_field( $field ) {
+        $default = $field['default'] ?? [];
+        $saved   = get_option( $field['id'], null );
+        $saved   = ( $saved !== null && is_array( $saved ) ) ? $saved : $default;
+        $tip     = ! empty( $field['desc_tip'] ) ? $field['desc_tip'] : '';
+
+        $countries = \Woo_Vignette\includes\core\Woo_Vignette_Base::instance()->get_wv_countries();
+        ?>
+        <tr valign="top">
+            <th scope="row" class="titledesc">
+                <label for="<?php echo esc_attr( $field['id'] ); ?>">
+                    <?php echo esc_html( $field['title'] ); ?>
+                    <?php echo wc_help_tip( $tip ); ?>
+                </label>
+            </th>
+            <td class="forminp">
+                <?php if ( empty( $countries ) ) : ?>
+                    <p class="description">
+                        <?php esc_html_e( 'No countries found. Add countries via the Countries post type first.', 'woo-vignette' ); ?>
+                    </p>
+                <?php else : ?>
+                    <select
+                        id="<?php echo esc_attr( $field['id'] ); ?>"
+                        name="<?php echo esc_attr( $field['id'] ); ?>[]"
+                        multiple="multiple"
+                        class="wc-enhanced-select"
+                        style="width:350px;"
+                        data-placeholder="<?php esc_attr_e( 'Select countries…', 'woo-vignette' ); ?>"
+                    >
+                        <?php foreach ( $countries as $code => $name ) : ?>
+                            <option value="<?php echo esc_attr( $code ); ?>" <?php selected( in_array( $code, $saved, true ), true ); ?>>
+                                <?php echo esc_html( $name . ' (' . $code . ')' ); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="description">
+                        <?php esc_html_e( 'Hold Ctrl / Cmd to select multiple countries.', 'woo-vignette' ); ?>
+                    </p>
+                <?php endif; ?>
+            </td>
+        </tr>
+        <?php
+    }
+
+    // -------------------------------------------------------------------------
     // Static helpers — use these anywhere in the plugin
     // -------------------------------------------------------------------------
 
@@ -250,6 +336,30 @@ class Woo_Vignette_Settings {
             $product_id = (int) WV_OPTIONAL_PRODUCT_ID;
         }
         return $product_id;
+    }
+
+    /**
+     * Returns the country codes that trigger checkout vehicle-information fields.
+     * Falls back to the original hardcoded list when no setting has been saved yet.
+     */
+    public static function get_active_countries() {
+        $saved = get_option( self::OPTION_ACTIVE_COUNTRIES, null );
+        if ( $saved !== null && is_array( $saved ) ) {
+            return $saved;
+        }
+        return [ 'at', 'bg', 'hu', 'ro', 'sk', 'sl', 'ch', 'cs', 'fr', 'de', 'md' ];
+    }
+
+    /**
+     * Returns the country codes excluded from the rapid processing fee count.
+     * Falls back to the original hardcoded list when no setting has been saved yet.
+     */
+    public static function get_rapid_excluded_countries() {
+        $saved = get_option( self::OPTION_RAPID_EXCLUDED_COUNTRIES, null );
+        if ( $saved !== null && is_array( $saved ) ) {
+            return $saved;
+        }
+        return [ 'fr', 'de' ];
     }
 
     // -------------------------------------------------------------------------

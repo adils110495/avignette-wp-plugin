@@ -48,6 +48,13 @@ class Woo_Vignette_Order_Form {
 		$cart_variations   = $atts['cart_variations'];
 		$baseClass = new \Woo_Vignette\includes\core\Woo_Vignette_Base;
 		$countries = $baseClass->get_available_countries();
+
+		// Filter to only countries enabled in Vignette settings.
+		$active_countries = \Woo_Vignette\admin\includes\Woo_Vignette_Settings::get_active_countries();
+		if ( ! empty( $active_countries ) ) {
+			$countries = array_intersect_key( $countries, array_flip( $active_countries ) );
+		}
+
 		$languages = array_keys($countries);
 		$variations = $baseClass->getVariations();
 		/*if(isset($variations['weight'])){

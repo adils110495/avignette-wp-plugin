@@ -23,14 +23,14 @@ class Woo_Vignette_Checkout_Fields
                 'id'        => 'country_registration',
                 'label'     => 'Country of Registration',
                 'options'   => $countries,
-                'country'   => ['at', 'bg', 'hu', 'ro', 'sk', 'sl', 'ch', 'cs', 'fr', 'de','md'],
+                'country'   => Woo_Vignette_Settings::get_active_countries(),
                 'required'  => true
             ],
             'license_plate' => [
                 'type'      => 'input',
                 'id'        => 'license_plate',
                 'label'     => 'License Plate',
-                'country'   => ['at', 'bg', 'hu', 'ro', 'sk', 'sl', 'ch', 'cs', 'fr', 'de','md'],
+                'country'   => Woo_Vignette_Settings::get_active_countries(),
                 'required'  => true
             ],
             'german_sticker_type' =>[
@@ -85,7 +85,7 @@ class Woo_Vignette_Checkout_Fields
                 'type'      => 'date',
                 'id'        => 'registration_date',
                 'label'     => 'Date of first Registration',
-                'country'   => ['at', 'bg', 'hu', 'ro', 'sk', 'sl', 'ch', 'cs', 'fr', 'de','md'],
+                'country'   => Woo_Vignette_Settings::get_active_countries(),
                 'required'  => true
             ],
             'vehicle_scan_registration_document' => [
