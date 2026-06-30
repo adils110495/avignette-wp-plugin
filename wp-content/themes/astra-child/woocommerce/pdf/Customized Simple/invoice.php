@@ -1,6 +1,5 @@
 <?php if (! defined('ABSPATH')) exit; // Exit if accessed directly 
 $order = wc_get_order($order_id); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-$custom_order_fields = get_post_meta($order_id);
 ?>
 
 
@@ -42,8 +41,14 @@ $custom_order_fields = get_post_meta($order_id);
 <table class="order-data-addresses">
     <tr>
         <td class="customer-name">
-            <strong><?php echo esc_html($this->order->get_formatted_billing_full_name()); ?></strong>
-
+            <strong><?php echo esc_html($this->order->get_formatted_billing_full_name()); ?></strong><br>
+            <?php echo wp_kses_post( $this->order->get_formatted_billing_address() ); ?><br>
+            <?php if ( $this->order->get_billing_email() ) : ?>
+                <?php echo esc_html( $this->order->get_billing_email() ); ?><br>
+            <?php endif; ?>
+            <?php if ( $this->order->get_billing_phone() ) : ?>
+                <?php echo esc_html( $this->order->get_billing_phone() ); ?>
+            <?php endif; ?>
         </td>
         <td class="order-data">
             <table>
@@ -82,11 +87,11 @@ $custom_order_fields = get_post_meta($order_id);
         <tr>
             <td>
                 <?php
-                if (isset($custom_order_fields['start_date'], $custom_order_fields['end_date'])) {
-                    $start_date = $custom_order_fields['start_date'][0];
-                    $end_date = $custom_order_fields['end_date'][0];
-                    echo "<strong>From</strong> " . esc_html(date('d M Y', strtotime($start_date))) . "<br>";
-                    echo "<strong>Till</strong> " . esc_html(date('d M Y', strtotime($end_date)));
+                $_inv_start = $order->get_meta('start_date');
+                $_inv_end   = $order->get_meta('end_date');
+                if ( $_inv_start && $_inv_end ) {
+                    echo "<strong>From</strong> " . esc_html(date('d M Y', strtotime($_inv_start))) . "<br>";
+                    echo "<strong>Till</strong> " . esc_html(date('d M Y', strtotime($_inv_end)));
                 } else {
                     echo "Dates not available";
                 }
@@ -94,8 +99,9 @@ $custom_order_fields = get_post_meta($order_id);
             </td>
 
             <td><?php
-                if (isset($custom_order_fields['license_plate'])) {
-                    echo esc_html($custom_order_fields['license_plate'][0]);
+                $_inv_plate = $order->get_meta('license_plate');
+                if ( $_inv_plate ) {
+                    echo esc_html( $_inv_plate );
                 }
                 ?>
             </td>
@@ -118,14 +124,29 @@ $custom_order_fields = get_post_meta($order_id);
     </thead>
     <tbody>
         <?php
-        $tax_amount = 0;
         $optional_product_id = 3413;
         $current_language = apply_filters('wpml_current_language', null);
         $optional_product_id = icl_object_id($optional_product_id, 'product', false, $current_language);
         $optional_product = wc_get_product($optional_product_id);
+
+        // Correct subtotal and VAT: include product line taxes + vignette fee taxes.
+        $_inv_subtotal = 0;
+        $_inv_tax      = floatval( $order->get_shipping_tax() );
+        foreach ( $order->get_items() as $_iid => $_iitem ) {
+            $_ivf = $_iitem->get_meta('vignette_fee');
+            $_inv_subtotal += floatval( $_iitem['total'] ) + floatval( $_iitem['total_tax'] );
+            $_inv_tax      += floatval( $_iitem['total_tax'] );
+            if ( ! empty( $_ivf['price_with_tax'] ) ) {
+                $_inv_subtotal += floatval( $_ivf['price_with_tax'] );
+            }
+            if ( ! empty( $_ivf['tax_amount'] ) ) {
+                $_inv_tax += floatval( $_ivf['tax_amount'] );
+            }
+        }
+        $tax_amount = round( $_inv_tax, 2 );
+
         foreach ($this->order->get_items() as $item_id => $item) :
             $vignette_fee = $item->get_meta('vignette_fee');
-            $tax_amount += !empty($vignette_fee['tax_amount']) ? round($vignette_fee['tax_amount'], 2) : 0;
             $product_id = $item->get_product_id();
             $is_optional_product = ($product_id == $optional_product_id);
         ?>
@@ -226,21 +247,20 @@ $custom_order_fields = get_post_meta($order_id);
 
                         <?php foreach ($this->get_woocommerce_totals() as $key => $total): ?>
                             <?php
+                            // Skip individual fee lines — vignette fees are already rolled into our subtotal.
                             if (strpos($key, 'fee_') !== false) {
                                 continue;
                             } ?>
                             <tr class="<?php echo esc_attr($key); ?>">
                                 <th class="description"><?php echo $total['label']; ?></th>
-                                <td class="price"><span class="totals-price"><?php echo $total['value']; ?></span></td>
+                                <td class="price"><span class="totals-price">
+                                    <?php if ($key === 'cart_subtotal'): ?>
+                                        <?php echo wc_price( $_inv_subtotal ); ?>
+                                    <?php else: ?>
+                                        <?php echo $total['value']; ?>
+                                    <?php endif; ?>
+                                </span></td>
                             </tr>
-                            <?php if ($key == "cart_subtotal"): ?>
-                                <tr class="vat">
-                                    <th class="description"><?php echo esc_html__('Value added tax (VAT)', 'woocommerce'); ?></th>
-                                    <td class="price"><span class="totals-price">
-                                            <?php echo wc_price($tax_amount) ?></span>
-                                    </td>
-                                </tr>
-                            <?php endif; ?>
                         <?php endforeach; ?>
                     </tfoot>
                 </table>

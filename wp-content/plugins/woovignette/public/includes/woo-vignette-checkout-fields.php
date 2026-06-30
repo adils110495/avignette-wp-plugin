@@ -219,24 +219,29 @@ class Woo_Vignette_Checkout_Fields
 
     public function save_checkout_fields($order_id)
     {
-        $order_date = WC()->session->get('order_date');
-        $cart_countries = WC()->session->get('countries');
-        if (!empty($order_date)) {
-            $start_date = date('Y-m-d', strtotime($order_date['start_date']));
-            $end_date = date('Y-m-d', strtotime($order_date['end_date']));
-            update_post_meta($order_id, 'start_date', $start_date);
-            update_post_meta($order_id, 'end_date', $end_date);
-        }
-        if (!empty($cart_countries)) {
-            update_post_meta($order_id, 'countries', $cart_countries);
+        $order = wc_get_order($order_id);
+        if ( ! $order ) {
+            return;
         }
 
-        foreach ($this->attributes as $key => $field) {
-            if (isset($_POST[$key])) {
-                $value = sanitize_text_field($_POST[$key]);
-                update_post_meta($order_id, "{$key}", $value);
+        $order_date    = WC()->session->get('order_date');
+        $cart_countries = WC()->session->get('countries');
+
+        if ( ! empty($order_date) ) {
+            $order->update_meta_data( 'start_date', date( 'Y-m-d', strtotime( $order_date['start_date'] ) ) );
+            $order->update_meta_data( 'end_date',   date( 'Y-m-d', strtotime( $order_date['end_date'] ) ) );
+        }
+        if ( ! empty($cart_countries) ) {
+            $order->update_meta_data( 'countries', $cart_countries );
+        }
+
+        foreach ( $this->attributes as $key => $field ) {
+            if ( isset( $_POST[$key] ) ) {
+                $order->update_meta_data( $key, sanitize_text_field( $_POST[$key] ) );
             }
         }
+
+        $order->save();
     }
 
     // Hook to display editable fields in the admin order page
