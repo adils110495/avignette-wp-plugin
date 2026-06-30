@@ -99,15 +99,24 @@ $astra_setting = get_option('astra-settings');
 			</tr>
 		<?php //endforeach; ?>-->
 
-		<?php //if ( WC()->cart->needs_shipping() && WC()->cart->show_shipping() ) : ?>
+		<?php
+		$_has_shipping_rates = false;
+		foreach ( WC()->shipping()->get_packages() as $_pkg ) {
+			if ( ! empty( $_pkg['rates'] ) ) {
+				$_has_shipping_rates = true;
+				break;
+			}
+		}
+		?>
+		<?php if ( $_has_shipping_rates && WC()->cart->needs_shipping() && WC()->cart->show_shipping() ) : ?>
 
-			<?php //do_action( 'woocommerce_review_order_before_shipping' ); ?>
+			<?php do_action( 'woocommerce_review_order_before_shipping' ); ?>
 
-			<?php //wc_cart_totals_shipping_html(); ?>
+			<?php wc_cart_totals_shipping_html(); ?>
 
-			<?php //do_action( 'woocommerce_review_order_after_shipping' ); ?>
+			<?php do_action( 'woocommerce_review_order_after_shipping' ); ?>
 
-		<?php //endif; ?>
+		<?php endif; ?>
 
 		<?php //foreach ( WC()->cart->get_fees() as $fee ) : ?>
 			<!--<tr class="fee">
@@ -149,6 +158,7 @@ $astra_setting = get_option('astra-settings');
 						$_review_total += floatval( $_rt_item['vignette_fee']['price_with_tax'] );
 					}
 				}
+				$_review_total += floatval( WC()->cart->get_shipping_total() ) + floatval( WC()->cart->get_shipping_tax() );
 				echo wc_price( $_review_total );
 			?></td>
 		</tr>
