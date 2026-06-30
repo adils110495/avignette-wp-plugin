@@ -23,6 +23,7 @@ class Woo_Filters
         add_filter('woocommerce_order_shipping_to_display_shipped_via', [$this,'display_shipped_via'], 10, 2);
         add_filter('woocommerce_cart_subtotal', [$this,'cart_subtotal'], 10, 3);
         add_filter('woocommerce_order_subtotal_to_display', [$this,'order_subtotal_to_display'], 10, 3);
+        add_filter('woocommerce_calculated_total', [$this,'ensure_vignette_fees_in_total'], 20, 2);
     }
     
     public function order_subtotal_to_display( $subtotal, $compound, $order ){
@@ -116,6 +117,32 @@ class Woo_Filters
         
         return $subtotal;
     }
+    public function ensure_vignette_fees_in_total( $total, $cart ) {
+        // Sum vignette fees already added to WC via add_fee() (keyed by "Service Fee:" prefix).
+        $already_added = 0.0;
+        foreach ( $cart->get_fees() as $fee ) {
+            if ( strpos( $fee->name, 'Service Fee:' ) === 0 ) {
+                $already_added += floatval( $fee->amount );
+            }
+        }
+
+        // Sum the expected vignette fees from cart item meta.
+        $expected = 0.0;
+        foreach ( $cart->get_cart() as $cart_item ) {
+            if ( isset( $cart_item['vignette_fee']['price_with_tax'] ) ) {
+                $expected += floatval( $cart_item['vignette_fee']['price_with_tax'] );
+            }
+        }
+
+        // Only add what is missing — prevents double-counting when add_fee() already worked.
+        $gap = $expected - $already_added;
+        if ( $gap > 0.001 ) {
+            $total += $gap;
+        }
+
+        return $total;
+    }
+
     public function display_shipped_via($label, $method){
         return "";
     }

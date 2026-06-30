@@ -835,21 +835,18 @@ class Woo_Vignette_Ajax
     }
     
     public function add_fee_to_all_line_items( $cart ) {
-        // Loop through each cart item
         foreach ( $cart->get_cart() as $cart_item_key => $cart_item ) {
-            if( isset( $cart_item['vignette_fee'] ) ){
-                $fee_name = "Service Fee: " . $this->invoice_service_item_name( $cart_item['data']->get_name(),$cart_item );
-                $decimal_places = get_option( 'woocommerce_price_num_decimals', 2 );
-                $fee_amount = round( $cart_item['vignette_fee']['price'] ,2);
-                $taxRates = $cart_item['vignette_fee']['tax_rates']??[];
-                $is_taxable = !empty($taxRates); 
-                $taxclass = '';
-                foreach( $taxRates as $taxRate ){
-                    $taxclass = $taxRate['tax_class']??'';
-                    break;
-                }
-                $cart->add_fee($fee_name, $fee_amount, $is_taxable, $taxclass);
+            if ( ! isset( $cart_item['vignette_fee']['price_with_tax'] ) ) {
+                continue;
             }
+            $fee_amount = floatval( $cart_item['vignette_fee']['price_with_tax'] );
+            if ( $fee_amount <= 0 ) {
+                continue;
+            }
+            $fee_name = "Service Fee: " . $this->invoice_service_item_name( $cart_item['data']->get_name(), $cart_item );
+            // Use price_with_tax (tax-inclusive total) as a non-taxable fee so WC does
+            // not add extra tax on top — the full amount is already accounted for.
+            $cart->add_fee( $fee_name, $fee_amount, false, '' );
         }
     }
 
