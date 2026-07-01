@@ -393,10 +393,21 @@
 
                     input.off('click.datepicker').on('click.datepicker', function() {
                         var val = input.val();
+
+                        // If no date is selected yet and a minDate exists, open on the
+                        // month that contains the first selectable day instead of today.
+                        var showDate = val || null;
+                        if (!val && minDate) {
+                            var dd   = String(minDate.getDate()).padStart(2, '0');
+                            var mm   = String(minDate.getMonth() + 1).padStart(2, '0');
+                            var yyyy = minDate.getFullYear();
+                            showDate = dd + '.' + mm + '.' + yyyy;
+                        }
+
                         var opts = {
                             views: {
                                 month: {
-                                    show: val || null,
+                                    show: showDate,
                                     selected: val ? [val] : [],
                                     firstDayOfWeek: 1
                                 }
