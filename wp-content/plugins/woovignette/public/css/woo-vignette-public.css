@@ -45,21 +45,30 @@
 #map-order-form .wp-block-button .wp-block-button__link{
     z-index:99;
 }
+/* Variation option row – always a single flex row */
+.wv-variation-option {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+}
+
 /* Add base styles for the label */
 .wv-variation-option label {
-    position:relative;
-  display: inline-block;
-  /*background-color: #f0f0f0; */
-  border: 1px solid #ccc; /* Light grey border */
-  border-radius: 8px; /* Rounded corners */
-  padding: 8px; /* Padding inside the box */
-  margin: 2px; /* Margin between the boxes */
-  cursor: pointer; /* Change cursor to indicate it's clickable */
-  transition: all 0.3s ease; /* Smooth transition for background color change */
-  color: #333; /* Dark text color */
-  text-align: center; /* Center text inside the label */
-  min-width: 150px; /* Optional: limit the width of the label */
-  box-sizing: border-box; /* Ensure padding doesn't affect the overall width */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 0%;
+    min-width: 0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 6px 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #333;
+    text-align: center;
+    box-sizing: border-box;
 }
 
 /* Style when the radio input is checked */
@@ -783,21 +792,24 @@ input[type="date"] {
 .variation-label svg{
     color: var(--ast-global-color-0);
     fill: var(--ast-global-color-0);
-    width: 80px;
-    height: 45px;
+    width: 48px;
+    height: 30px;
 }
 .variation-label .wv-tooltip-icon{
     color: var(--ast-global-color-0);
     fill: var(--ast-global-color-0);
-    width: 20px;
-    height: 20px;
+    width: 14px;
+    height: 14px;
 }
 .variation-label .wv-variation-name{
     display: flex;
     justify-content: center;
     align-items: center;
-    column-gap: 3px;
+    column-gap: 2px;
     font-weight: 600;
+    font-size: 11px;
+    line-height: 1.2;
+    white-space: nowrap;
 }
 
 .order-form-popup-sidebar .uagb-popup-builder__container span.select2-container{
